@@ -9,8 +9,6 @@
 
 SynchroTwin-AR is a cutting-edge system for real-time neural synchrony monitoring and augmented reality biofeedback. It combines advanced neuroscience algorithms with modern web technologies to create a comprehensive platform for studying and enhancing inter-brain synchrony.
 
-![SynchroTwin-AR Dashboard](screenshots/dashboard-overview.png)
-
 ## ✨ Key Features
 
 ### 🔬 Advanced Neural Analysis
@@ -40,29 +38,40 @@ SynchroTwin-AR is a cutting-edge system for real-time neural synchrony monitorin
 
 ### Prerequisites
 - Python 3.11+
-- Node.js 20+
-- npm/pnpm package manager
+- Node.js 18+
+- npm or yarn package manager
 
 ### 1. Clone and Setup
 ```bash
-git clone <repository-url>
+git clone https://github.com/alisalehi3/synchrotwin-ar.git
 cd synchrotwin-ar
 ```
 
-### 2. Backend Setup (Demo Mode)
+### 2. Backend Setup
 ```bash
-# Install dependencies
-pip install flask flask-cors flask-socketio numpy scipy pywavelets
+# Install Python dependencies
+pip install -r requirements.txt
 
 # Run demo backend (all services)
 python demo_backend.py
 ```
 
+The backend will automatically:
+- Start 5 microservices on ports 5000-5004
+- Handle port conflicts automatically
+- Generate real-time demo data
+- Provide WebSocket connections
+
 ### 3. Frontend Setup
 ```bash
+# Navigate to frontend directory
 cd frontend/synchrotwin-ar-frontend
-pnpm install
-pnpm run dev --host
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
 ### 4. Access Dashboard
@@ -85,6 +94,7 @@ synchrotwin-ar/
 ├── frontend/                      # React dashboard
 │   └── synchrotwin-ar-frontend/   # Complete dashboard interface
 ├── demo_backend.py               # Simplified demo backend
+├── requirements.txt              # Python dependencies
 ├── research_report.md            # Comprehensive research documentation
 ├── architecture_design.md        # System architecture specification
 ├── DEPLOYMENT_GUIDE.md          # Production deployment guide
@@ -98,157 +108,100 @@ synchrotwin-ar/
 | Service | Port | Description |
 |---------|------|-------------|
 | Digital Twin | 5000 | Manages digital twin states and configurations |
-| Synchrony Analysis | 5001 | Real-time PLV, CRQA, and fNIRS analysis |
-| AR Biofeedback | 5002 | Visual, audio, and haptic feedback generation |
-| Data Ingestion | 5003 | Real-time biosignal data stream management |
+| Synchrony Analysis | 5001 | Real-time PLV and CRQA calculations |
+| AR Biofeedback | 5002 | Biofeedback session management |
+| Data Ingestion | 5003 | Data stream processing and management |
 | Notification | 5004 | WebSocket notifications and real-time updates |
 
-### Frontend Dashboard (Port 5173)
-- **Overview Tab**: System status and session management
-- **Synchrony Tab**: Real-time neural synchrony visualization
-- **Biofeedback Tab**: AR feedback configuration and control
-- **Data Streams Tab**: Biosignal stream monitoring
-- **System Tab**: Service health and system information
+### API Endpoints
 
-## 🧪 Core Algorithms
+Each service provides a `/api/health` endpoint for monitoring:
 
-### Phase-Locking Value (PLV)
-Measures the consistency of phase differences between two signals across time windows.
-
-```python
-from algorithms.plv_calculator import PLVCalculator
-
-calculator = PLVCalculator()
-plv = calculator.calculate_plv(signal1, signal2, sampling_rate=1000)
-```
-
-### Cross-Recurrence Quantification Analysis (CRQA)
-Analyzes the recurrence patterns in phase space to quantify coupling between systems.
-
-```python
-from algorithms.crqa_analyzer import CRQAAnalyzer
-
-analyzer = CRQAAnalyzer()
-results = analyzer.analyze_crqa(signal1, signal2, embedding_dim=3, delay=1)
-```
-
-### fNIRS Coherence
-Computes spectral, wavelet, and phase coherence for fNIRS signals.
-
-```python
-from algorithms.fnirs_coherence import FNIRSCoherence
-
-coherence = FNIRSCoherence()
-result = coherence.calculate_coherence(signal1, signal2, method='spectral')
-```
-
-## 📊 Dashboard Features
-
-### Real-time Visualization
-- **Time Series Charts**: Live synchrony metrics over time
-- **Radial Progress**: Current synchrony levels
-- **Trend Analysis**: Automatic trend detection
-- **Health Indicators**: Service status visualization
-
-### Interactive Controls
-- **Session Management**: Start, pause, resume, stop sessions
-- **Biofeedback Configuration**: Real-time parameter adjustment
-- **Data Stream Control**: Stream creation and management
-- **Notification Management**: Real-time system alerts
-
-## 🔬 Research Applications
-
-### Neuroscience Research
-- **Hyperscanning Studies**: Multi-participant brain synchrony
-- **Cognitive Load Assessment**: Real-time mental workload monitoring
-- **Social Neuroscience**: Interpersonal neural coupling analysis
-
-### Clinical Applications
-- **Neurofeedback Therapy**: Real-time brain training
-- **Rehabilitation**: Motor and cognitive rehabilitation
-- **Mental Health**: Stress and anxiety management
-
-### Educational Technology
-- **Collaborative Learning**: Team synchrony enhancement
-- **Attention Training**: Focus and concentration improvement
-- **Performance Optimization**: Peak performance states
-
-## 🏗️ Architecture
-
-### Microservices Design
-- **Independent Scaling**: Each service scales independently
-- **Fault Tolerance**: Service isolation prevents cascading failures
-- **Technology Diversity**: Best tool for each service
-- **Development Velocity**: Independent team development
-
-### Real-time Communication
-- **WebSocket Integration**: Live data streaming
-- **Event-driven Architecture**: Reactive system design
-- **Pub/Sub Messaging**: Decoupled service communication
-- **Real-time Notifications**: Instant system updates
-
-## 🚀 Deployment
-
-### Development
 ```bash
-# Demo backend (all services in one process)
-python demo_backend.py
-
-# Frontend development server
-cd frontend/synchrotwin-ar-frontend
-pnpm run dev --host
+# Check service health
+curl http://localhost:5000/api/health
+curl http://localhost:5001/api/health
+curl http://localhost:5002/api/health
+curl http://localhost:5003/api/health
+curl http://localhost:5004/api/health
 ```
 
-### Production
+## 🎯 Features
+
+### Real-time Dashboard
+- **Service Status Monitoring**: Live health checks for all backend services
+- **PLV Data Visualization**: Real-time chart showing Phase-Locking Value data
+- **WebSocket Connection**: Live data streaming from backend to frontend
+- **Responsive Design**: Works on desktop and mobile devices
+
+### Demo Data Generation
+- **Automatic PLV Generation**: Simulated neural synchrony data
+- **WebSocket Broadcasting**: Real-time data emission every 2 seconds
+- **Service Health Simulation**: Realistic service status monitoring
+
+## 🔧 Troubleshooting
+
+### Port Conflicts
+If you see "Address already in use" errors:
+- The backend automatically finds available ports
+- Check the console output for actual port numbers
+- Update frontend configuration if needed
+
+### Frontend Issues
+If npm install fails:
 ```bash
-# Docker Compose
-docker-compose up -d
+# Clear npm cache
+npm cache clean --force
 
-# Kubernetes
-kubectl apply -f k8s/
+# Try with yarn instead
+yarn install
 ```
 
-See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed deployment instructions.
+### Backend Issues
+If services don't start:
+```bash
+# Check Python version
+python --version
 
-## 📚 Documentation
+# Reinstall dependencies
+pip install -r requirements.txt --force-reinstall
+```
 
-- **[Research Report](research_report.md)**: Comprehensive algorithm documentation
-- **[Architecture Design](architecture_design.md)**: System architecture specification
-- **[Project Summary](PROJECT_SUMMARY.md)**: Detailed project overview
-- **[Deployment Guide](DEPLOYMENT_GUIDE.md)**: Production deployment instructions
+## 📊 Demo Features
+
+### Live Data Visualization
+- Real-time PLV (Phase-Locking Value) charts
+- Service health monitoring
+- WebSocket connection status
+- Historical data display
+
+### Service Monitoring
+- Individual service health checks
+- Automatic error detection
+- Service status indicators
+- Port conflict resolution
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## 🔬 Research
 
-- **Neuroscience Community**: For foundational research in neural synchrony
-- **Open Source Libraries**: NumPy, SciPy, React, Flask, and many others
-- **Research Institutions**: Supporting hyperscanning and neurofeedback research
+For detailed research information, see [research_report.md](research_report.md).
 
-## 📞 Contact
+## 🚀 Deployment
 
-For questions, support, or collaboration opportunities:
-
-- **Project Repository**: [GitHub Repository URL]
-- **Documentation**: [Documentation URL]
-- **Issues**: [GitHub Issues URL]
+For production deployment instructions, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
 
 ---
 
-**SynchroTwin-AR** - Advancing the future of neural synchrony research and AR biofeedback therapy.
-
-![Neural Synchrony](https://img.shields.io/badge/Neural-Synchrony-blue)
-![AR Biofeedback](https://img.shields.io/badge/AR-Biofeedback-green)
-![Real--time](https://img.shields.io/badge/Real--time-Processing-red)
-![Research](https://img.shields.io/badge/Research-Grade-purple)
+**Note**: This is a demonstration system. For production use, implement proper security measures, data validation, and error handling.
 

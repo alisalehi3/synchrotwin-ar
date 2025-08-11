@@ -14,10 +14,24 @@ import time
 import random
 import datetime
 import json
+import socket
+import sys
 
 # Create Flask apps for each service
 apps = {}
 socketio_instances = {}
+
+def is_port_in_use(port):
+    """Check if a port is already in use."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost', port)) == 0
+
+def find_available_port(start_port):
+    """Find an available port starting from start_port."""
+    port = start_port
+    while is_port_in_use(port):
+        port += 1
+    return port
 
 def create_service_app(service_name, port):
     """Create a Flask app for a specific service."""
@@ -26,7 +40,7 @@ def create_service_app(service_name, port):
     
     # Add SocketIO for notification service
     if service_name == 'notification':
-        socketio = SocketIO(app, cors_allowed_origins="*")
+        socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
         socketio_instances[service_name] = socketio
     
     @app.route('/api/health', methods=['GET'])
@@ -102,21 +116,15 @@ def create_service_app(service_name, port):
                 return jsonify({
                     'streams': [
                         {
-                            'stream_id': 'eeg_stream_001',
-                            'is_running': True,
-                            'total_samples': random.randint(1000, 5000),
-                            'info': {
-                                'config': {
-                                    'data_type': 'eeg',
-                                    'sampling_rate': 1000,
-                                    'buffer_size': 10000
-                                }
-                            }
+                            'id': 'stream_001',
+                            'type': 'eeg',
+                            'status': 'active',
+                            'data_points': random.randint(100, 1000)
                         }
                     ]
                 })
             else:
-                return jsonify({'message': 'Stream created', 'stream_id': f'stream_{int(time.time())}'})
+                return jsonify({'message': 'Stream created', 'id': f'stream_{int(time.time())}'})
     
     elif service_name == 'notification':
         @app.route('/api/notifications', methods=['GET'])
@@ -125,59 +133,68 @@ def create_service_app(service_name, port):
                 'notifications': [
                     {
                         'id': f'notif_{int(time.time())}',
-                        'topic': 'synchrony_updates',
-                        'data': {
-                            'synchrony_metrics': {
-                                'plv': random.uniform(0.3, 0.8)
-                            }
-                        },
+                        'type': 'info',
+                        'message': 'System is running normally',
                         'timestamp': datetime.datetime.now().isoformat()
                     }
                 ]
             })
+        
+        @socketio_instances[service_name].on('connect')
+        def handle_connect():
+            print(f"Client connected to {service_name} service")
+            emit('status', {'data': 'Connected'})
+        
+        @socketio_instances[service_name].on('disconnect')
+        def handle_disconnect():
+            print(f"Client disconnected from {service_name} service")
     
-    apps[service_name] = app
     return app
 
 def run_service(service_name, port):
-    """Run a service on a specific port."""
-    app = create_service_app(service_name, port)
-    print(f"Starting {service_name} service on port {port}")
-    
-    if service_name == 'notification':
-        socketio = socketio_instances[service_name]
-        socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)
-    else:
-        app.run(host='0.0.0.0', port=port, debug=False)
+    """Run a service on the specified port."""
+    try:
+        # Check if port is available, if not find another
+        actual_port = find_available_port(port)
+        if actual_port != port:
+            print(f"Port {port} is in use, using port {actual_port} for {service_name}")
+            port = actual_port
+        
+        app = create_service_app(service_name, port)
+        
+        if service_name == 'notification':
+            socketio = socketio_instances[service_name]
+            print(f"Starting {service_name} service on port {port}")
+            socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)
+        else:
+            print(f"Starting {service_name} service on port {port}")
+            app.run(host='0.0.0.0', port=port, debug=False)
+            
+    except Exception as e:
+        print(f"Error starting {service_name} service: {e}")
 
 def generate_demo_data():
-    """Generate demo data and emit via WebSocket."""
+    """Generate demo data for WebSocket connections."""
     while True:
-        time.sleep(5)  # Update every 5 seconds
-        
-        # Generate sample synchrony data
-        demo_data = {
-            'synchrony_metrics': {
-                'plv': random.uniform(0.2, 0.9),
-                'crqa_determinism': random.uniform(0.1, 0.7),
-                'fnirs_coherence': random.uniform(0.3, 0.8)
-            },
-            'biofeedback_state': {
-                'visual_feedback': {
-                    'intensity': random.uniform(0.3, 0.9),
-                    'particle_count': random.randint(50, 200)
-                }
-            },
-            'timestamp': datetime.datetime.now().isoformat()
-        }
-        
-        # Emit to notification service if available
-        if 'notification' in socketio_instances:
-            socketio = socketio_instances['notification']
-            socketio.emit('synchrony_update', demo_data)
-            print(f"Emitted demo data: PLV={demo_data['synchrony_metrics']['plv']:.3f}")
+        try:
+            # Emit demo data to notification service
+            if 'notification' in socketio_instances:
+                socketio = socketio_instances['notification']
+                plv_value = random.uniform(0.2, 0.9)
+                socketio.emit('plv_update', {
+                    'plv': round(plv_value, 3),
+                    'timestamp': datetime.datetime.now().isoformat()
+                })
+                print(f"Emitted demo data: PLV={plv_value:.3f}")
+            time.sleep(2)
+        except Exception as e:
+            print(f"Error generating demo data: {e}")
+            time.sleep(5)
 
 if __name__ == '__main__':
+    print("🚀 Starting SynchroTwin-AR Demo Backend Services...")
+    
+    # Define services and their default ports
     services = [
         ('digital_twin', 5000),
         ('synchrony_analysis', 5001),
@@ -186,30 +203,32 @@ if __name__ == '__main__':
         ('notification', 5004)
     ]
     
-    print("🚀 Starting SynchroTwin-AR Demo Backend Services...")
-    
     # Start all services in separate threads
     threads = []
     for service_name, port in services:
-        thread = threading.Thread(target=run_service, args=(service_name, port), daemon=True)
-        thread.start()
+        thread = threading.Thread(target=run_service, args=(service_name, port))
+        thread.daemon = True
         threads.append(thread)
-        time.sleep(1)  # Stagger startup
-    
-    # Start demo data generator
-    demo_thread = threading.Thread(target=generate_demo_data, daemon=True)
-    demo_thread.start()
+        thread.start()
+        time.sleep(1)  # Small delay between service starts
     
     print("✅ All services started successfully!")
     print("📊 Demo data generation active")
     print("🌐 Services available at:")
     for service_name, port in services:
-        print(f"   - {service_name.title()} Service: http://localhost:{port}")
+        actual_port = find_available_port(port)
+        print(f"   - {service_name.title()} Service: http://localhost:{actual_port}")
+    
+    # Start demo data generation
+    demo_thread = threading.Thread(target=generate_demo_data)
+    demo_thread.daemon = True
+    demo_thread.start()
     
     try:
-        # Keep main thread alive
+        # Keep the main thread alive
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         print("\n🛑 Shutting down services...")
+        sys.exit(0)
 
